@@ -44,7 +44,7 @@ export default function Preview({ code, className, progress = 0 }: PreviewProps)
   }, [code]);
 
   return (
-    <div className={cn("relative w-full h-full bg-[#111] overflow-hidden rounded-lg flex items-center justify-center border border-white/10", className)}>
+    <div className={cn("relative w-full h-full bg-[#111] overflow-hidden rounded-lg flex items-center justify-center border border-white/10 min-w-0 min-h-0", className)}>
       {error ? (
         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-red-950/20">
           <AlertCircle className="w-12 h-12 text-red-500 mb-4" />

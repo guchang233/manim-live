@@ -1,8 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { UserSettings } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const SYSTEM_PROMPT = `你是一个 Manim 动画助手。你的目标是帮助用户通过自然语言创建 Manim (Python) 动画。
+const BASE_SYSTEM_PROMPT = `你是一个 Manim 动画助手。你的目标是帮助用户通过自然语言创建 Manim (Python) 动画。
 
 由于这是一个基于 Web 的环境，无法直接运行 Python，你必须为每个请求提供两个版本的动画：
 1. manimCode: 使用 Manim Community Edition (manimce) 的标准 Python 代码。
@@ -33,16 +34,19 @@ previewCode 编写指南（核心）：
 
 请以严格的 JSON 格式返回响应。所有文本说明和描述请使用中文。请发挥创意，确保视觉效果美观，符合 "Manim 风格"（深色背景、简洁线条、数学美感）。注意：所有生成的 React 代码中的文本组件若涉及数学，必须手动设置 fontFamily="STIX Two Text, serif"。`;
 
-export async function generateAnimation(prompt: string, history: { role: 'user' | 'assistant', content: string }[] = []) {
+export async function generateAnimation(prompt: string, history: { role: 'user' | 'assistant', content: string }[] = [], settings?: UserSettings) {
   try {
+    const modelName = settings?.model || "gemini-1.5-pro";
+    const customPrompt = settings?.customSystemPrompt ? `\n\n用户自定义指令：${settings.customSystemPrompt}` : "";
+
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-pro-preview",
+      model: modelName,
       contents: [
         ...history.map(h => ({ role: h.role, parts: [{ text: h.content }] })),
         { parts: [{ text: prompt }] }
       ],
       config: {
-        systemInstruction: SYSTEM_PROMPT,
+        systemInstruction: BASE_SYSTEM_PROMPT + customPrompt,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

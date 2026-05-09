@@ -1,11 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Code, Eye, Layers, Settings2, Download, Copy, Check, Menu, MessageSquare, RefreshCw, Play, Pause } from 'lucide-react';
+import { Code, Eye, Layers, Settings2, Download, Copy, Check, Menu, MessageSquare, Play, Pause, GripVertical, GripHorizontal } from 'lucide-react';
+import { Panel, Group, Separator, PanelImperativeHandle } from 'react-resizable-panels';
 import Chat from './components/Chat';
 import Sidebar from './components/Sidebar';
 import CodeEditor from './components/Editor';
 import Preview from './components/Preview';
-import { ChatMessage, ManimProject, Session } from './types';
+import SettingsModal from './components/SettingsModal';
+import { ChatMessage, ManimProject, Session, UserSettings, DEFAULT_SETTINGS } from './types';
 import { generateAnimation } from './services/gemini';
 import { cn } from './lib/utils';
 
@@ -28,6 +30,18 @@ export default function App() {
     return [];
   });
 
+  const [settings, setSettings] = useState<UserSettings>(() => {
+    const saved = localStorage.getItem('manim_settings');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return DEFAULT_SETTINGS;
+      }
+    }
+    return DEFAULT_SETTINGS;
+  });
+
   const [activeSessionId, setActiveSessionId] = useState<string>(() => {
     return sessions.length > 0 ? sessions[0].id : '';
   });
@@ -35,16 +49,20 @@ export default function App() {
   const activeSession = sessions.find(s => s.id === activeSessionId);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [isPreviewVisible, setIsPreviewVisible] = useState(true);
   const [isEditorVisible, setIsEditorVisible] = useState(true);
-  const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [progress, setProgress] = useState(0.5);
   const [isPlaying, setIsPlaying] = useState(false);
   const [localCode, setLocalCode] = useState<string>('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Refs for panels
+  const sidebarPanelRef = useRef<PanelImperativeHandle>(null);
+  const chatPanelRef = useRef<PanelImperativeHandle>(null);
 
   useEffect(() => {
     if (activeSession) {
@@ -64,9 +82,6 @@ export default function App() {
     if (!activeSession) return;
     setIsLoading(true);
     try {
-      // Just update the project code to trigger a preview update if the component was reactive,
-      // but here we might want to ask Gemini to verify/fix the React code based on Python changes.
-      // For a simple version, we'll just commit the local code.
       updateSession(activeSession.id, {
         currentProject: {
           ...activeSession.currentProject,
@@ -78,7 +93,6 @@ export default function App() {
       console.error(e);
     } finally {
       setIsLoading(true);
-      // Brief delay to simulate "re-rendering" feel
       setTimeout(() => setIsLoading(false), 800);
     }
   };
@@ -116,6 +130,10 @@ export default function App() {
     localStorage.setItem('manim_sessions', JSON.stringify(sessions));
   }, [sessions]);
 
+  useEffect(() => {
+    localStorage.setItem('manim_settings', JSON.stringify(settings));
+  }, [settings]);
+
   const handleNewSession = () => {
     const newSession: Session = {
       id: Date.now().toString(),
@@ -127,12 +145,6 @@ export default function App() {
     setSessions([newSession, ...sessions]);
     setActiveSessionId(newSession.id);
   };
-
-  useEffect(() => {
-    if (sessions.length === 0) {
-      handleNewSession();
-    }
-  }, []);
 
   const updateSession = (id: string, updates: Partial<Session>) => {
     setSessions(prev => prev.map(s => s.id === id ? { ...s, ...updates, updatedAt: Date.now() } : s));
@@ -168,7 +180,7 @@ export default function App() {
 
     try {
       const history = activeSession.messages.map(m => ({ role: m.role, content: m.content }));
-      const result = await generateAnimation(finalContent, history);
+      const result = await generateAnimation(finalContent, history, settings);
       
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -186,7 +198,6 @@ export default function App() {
         currentProject: assistantMessage.project,
         title: result.refinedDescription
       });
-      setActiveTab('preview');
     } catch (error) {
       console.error("Failed to generate animation:", error);
       const errorMessage: ChatMessage = {
@@ -206,208 +217,257 @@ export default function App() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const toggleSidebar = () => {
+    const panel = sidebarPanelRef.current;
+    if (panel) {
+      if (panel.isCollapsed()) panel.expand();
+      else panel.collapse();
+    }
+  };
+
+  const toggleChat = () => {
+    const panel = chatPanelRef.current;
+    if (panel) {
+      if (panel.isCollapsed()) panel.expand();
+      else panel.collapse();
+    }
+  };
+
   if (!activeSession) return null;
 
   return (
-    <div className="flex h-screen bg-[#0A0A0A] text-white font-sans overflow-hidden">
-      {/* Sessions Sidebar */}
-      <motion.div
-        initial={false}
-        animate={{ 
-          width: isSidebarOpen ? '260px' : '0px',
-          opacity: isSidebarOpen ? 1 : 0
-        }}
-        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-        className="shrink-0 overflow-hidden border-r border-white/5 bg-[#0D0D0D]"
+    <div className="flex h-screen w-full bg-[#0A0A0A] text-white font-sans overflow-hidden antialiased select-none">
+      <SettingsModal 
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        settings={settings}
+        onSave={setSettings}
+      />
+
+      <Group 
+        direction="horizontal" 
+        className="flex-1 h-full w-full overflow-hidden min-w-0 min-h-0" 
+        id="main-app-layout"
       >
-        <div className="w-[260px] h-full">
-          <Sidebar 
-            sessions={sessions}
-            activeSessionId={activeSessionId}
-            onSelectSession={setActiveSessionId}
-            onNewSession={handleNewSession}
-            onDeleteSession={handleDeleteSession}
-          />
-        </div>
-      </motion.div>
-
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0 border-r border-white/5 relative">
-        {/* Navbar */}
-      <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-[#0A0A0A]/80 backdrop-blur-md z-10">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={cn(
-                "p-1.5 rounded-lg transition-all",
-                isSidebarOpen ? "text-white/40 hover:text-white hover:bg-white/5" : "bg-purple-600/20 text-purple-400 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)]"
-              )}
-            >
-              <Menu className="w-4 h-4" />
-            </button>
-            <div className="flex items-center gap-1 bg-white/5 p-1 rounded-lg border border-white/5">
-              <button
-                onClick={() => setIsPreviewVisible(!isPreviewVisible)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-bold transition-all",
-                  isPreviewVisible ? "bg-white/10 text-white" : "text-white/30 hover:text-white/50"
-                )}
-              >
-                <Eye className="w-3 h-3" />
-                预览
-              </button>
-              <button
-                onClick={() => setIsEditorVisible(!isEditorVisible)}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1 rounded-md text-[10px] font-bold transition-all",
-                  isEditorVisible ? "bg-white/10 text-white" : "text-white/30 hover:text-white/50"
-                )}
-              >
-                <Code className="w-3 h-3" />
-                代码
-              </button>
-            </div>
+        {/* SESSIONS SIDEBAR */}
+        <Panel 
+          id="sidebar-panel"
+          order={0}
+          panelRef={sidebarPanelRef}
+          defaultSize={20} 
+          minSize={0} 
+          collapsible
+          className="relative min-w-0 min-h-0 z-10"
+          onResize={(size) => setIsSidebarCollapsed(size.asPercentage === 0)}
+        >
+          <div className="absolute inset-0 border-r border-white/5 overflow-hidden flex flex-col min-w-0 min-h-0">
+            <Sidebar 
+              sessions={sessions}
+              activeSessionId={activeSessionId}
+              onSelectSession={setActiveSessionId}
+              onNewSession={handleNewSession}
+              onDeleteSession={handleDeleteSession}
+            />
           </div>
+        </Panel>
 
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => copyToClipboard(activeSession.currentProject.manimCode || '')}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 rounded-lg text-[10px] font-bold text-purple-400 transition-all uppercase tracking-wider"
-            >
-              {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-              {copied ? '已复制' : '复制代码'}
-            </button>
-            <button 
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border",
-                isChatOpen 
-                  ? "bg-purple-600/10 border-purple-500/30 text-purple-400" 
-                  : "bg-white/5 border-white/5 text-white/40 hover:text-white"
-              )}
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              AI 助手
-            </button>
-          </div>
-        </header>
+        <Separator className="w-1 bg-[#111] hover:bg-purple-500/30 transition-colors flex items-center justify-center group cursor-col-resize z-50 shrink-0">
+          <div className="w-[1px] h-10 bg-white/10 group-hover:bg-purple-500/50 transition-colors" />
+        </Separator>
 
-        {/* Dual Viewport */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Top Half: Preview */}
-          {isPreviewVisible && (
-            <div className={cn(
-              "flex flex-col min-h-0 border-b border-white/5 p-4 gap-3 bg-[#0D0D0D]/30 transition-all",
-              isEditorVisible ? "flex-[1.2]" : "flex-1"
-            )}>
-              <div className="flex items-center justify-between shrink-0">
-                <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Eye className="w-3 h-3" />
-                  可视化预览 ;
-                </span>
-              </div>
-              
-              <div className="flex-1 relative bg-black rounded-xl overflow-hidden border border-white/5 shadow-2xl">
-                <Preview code={activeSession.currentProject.previewCode || ''} progress={progress} />
-              </div>
-
-              {/* Progress Controller */}
-              <div className="shrink-0 flex items-center gap-4 bg-white/5 rounded-xl px-4 py-2 border border-white/5">
-                <button
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 transition-all"
-                >
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                </button>
-                <span className="text-[10px] font-mono text-white/40 shrink-0 w-8">
-                  {(progress * 100).toFixed(0)}%
-                </span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="1" 
-                  step="0.001" 
-                  value={progress}
-                  onChange={(e) => setProgress(parseFloat(e.target.value))}
-                  className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500 focus:outline-none"
-                />
+        {/* MAIN WORKSPACE */}
+        <Panel id="content-panel" order={1} minSize={0} defaultSize={50} className="relative min-w-0 min-h-0 flex-1 z-0">
+          <div className="absolute inset-0 flex flex-col bg-[#050505] overflow-hidden min-w-0 min-h-0">
+            {/* Minimal Header */}
+            <header className="h-12 border-b border-white/5 flex items-center justify-between px-3 bg-[#0A0A0A]/50 backdrop-blur-sm z-10 shrink-0 min-w-0 overflow-hidden">
+              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden shrink-0">
                 <button 
-                  onClick={() => {
-                    const pr = prompt("请输入您想在当前时刻（" + (progress * 100).toFixed(0) + "%）进行的深入调整建议：");
-                    if (pr) handleSendMessage(pr, true);
-                  }}
-                  className="px-2 py-1 rounded bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-[9px] font-bold text-purple-400 uppercase tracking-wider transition-all"
+                  onClick={toggleSidebar}
+                  className={cn(
+                    "p-1.5 rounded-md transition-colors shrink-0",
+                    !isSidebarCollapsed ? "text-white/30 hover:text-white hover:bg-white/5" : "bg-purple-500/20 text-purple-400"
+                  )}
                 >
-                  在此处微调
+                  <Menu className="w-3.5 h-3.5" />
+                </button>
+                
+                <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-md border border-white/5 min-w-0 overflow-hidden shrink-0">
+                  <span className="hidden md:block px-2 text-[10px] font-bold text-white/20 uppercase tracking-widest truncate max-w-[60px]">
+                    {activeSession.title}
+                  </span>
+                  <div className="flex items-center shrink-0">
+                    <button
+                      onClick={() => setIsPreviewVisible(!isPreviewVisible)}
+                      className={cn(
+                        "p-1.5 rounded-sm transition-all",
+                        isPreviewVisible ? "bg-white/10 text-white" : "text-white/20 hover:text-white/40"
+                      )}
+                    >
+                      <Eye className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => setIsEditorVisible(!isEditorVisible)}
+                      className={cn(
+                        "p-1.5 rounded-sm transition-all",
+                        isEditorVisible ? "bg-white/10 text-white" : "text-white/20 hover:text-white/40"
+                      )}
+                    >
+                      <Code className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0 ml-auto overflow-hidden">
+                <button 
+                  onClick={() => copyToClipboard(activeSession.currentProject.manimCode || '')}
+                  className="flex items-center gap-1.5 px-2 py-1 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 rounded-md text-purple-400 transition-all shrink-0"
+                >
+                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  <span className="hidden lg:inline text-[9px] font-bold uppercase tracking-widest">{copied ? '已复制' : '复制'}</span>
+                </button>
+                
+                <button 
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="p-1.5 hover:bg-white/5 rounded-md transition-colors text-white/30 hover:text-white shrink-0"
+                >
+                  <Settings2 className="w-3.5 h-3.5" />
+                </button>
+
+                <button 
+                  onClick={toggleChat}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold transition-all border shrink-0",
+                    !isChatCollapsed 
+                      ? "bg-purple-500/20 border-purple-500/40 text-purple-400" 
+                      : "bg-white/5 border-white/5 text-white/30 hover:text-white"
+                  )}
+                >
+                  <MessageSquare className="w-3 h-3" />
+                  <span className="hidden sm:inline uppercase">AI</span>
                 </button>
               </div>
-            </div>
-          )}
+            </header>
 
-          {/* Bottom Half: Editor */}
-          {isEditorVisible && (
-            <div className="flex-1 flex flex-col min-h-0 p-4 gap-2">
-              <div className="flex items-center justify-between shrink-0">
-                <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em] flex items-center gap-2">
-                  <Code className="w-3 h-3" />
-                  Manim Python 源码 ;
-                </span>
-              </div>
-              <div className="flex-1 rounded-xl overflow-hidden border border-white/5 relative group">
-                <CodeEditor 
-                  code={localCode} 
-                  onChange={handleLocalCodeChange}
-                  onLineClick={handleLineClick}
-                />
-                
-                <AnimatePresence>
-                  {hasUnsavedChanges && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
-                      className="absolute bottom-6 right-6 z-10 flex items-center gap-3 bg-purple-600 px-4 py-2 rounded-xl shadow-2xl border border-white/20"
-                    >
-                      <div className="flex flex-col">
-                        <span className="text-[10px] font-bold text-white/90 leading-none">代码已更改</span>
-                        <span className="text-[8px] text-white/50 uppercase tracking-tighter">是否应用并刷新预览？</span>
+            {/* Viewports */}
+            <div className="flex-1 relative min-h-0 min-w-0">
+              <Group orientation="vertical" id="viewport-group" className="absolute inset-0 h-full w-full overflow-hidden min-h-0 min-w-0">
+                {/* PREVIEW */}
+                {isPreviewVisible && (
+                  <Panel id="preview-panel" defaultSize={60} minSize={0} className="relative min-h-0 min-w-0">
+                    <div className="absolute inset-0 flex flex-col p-2 sm:p-3 overflow-hidden min-h-0 min-w-0">
+                      <div className="flex-1 min-h-0 min-w-0 relative bg-black rounded-lg overflow-hidden border border-white/5 shadow-2xl">
+                        <Preview code={activeSession.currentProject.previewCode || ''} progress={progress} />
                       </div>
-                      <button 
-                        onClick={handleReRender}
-                        disabled={isLoading}
-                        className="bg-white text-purple-600 px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-white/90 transition-colors disabled:opacity-50"
-                      >
-                        {isLoading ? '渲染中...' : '立即渲染'}
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
-          {!isPreviewVisible && !isEditorVisible && (
-            <div className="flex-1 flex items-center justify-center text-white/10 uppercase tracking-[0.5em] font-bold text-sm">
-              工作区已清空
-            </div>
-          )}
-        </div>
-      </main>
+                      
+                      {/* Controller */}
+                      <div className="h-10 mt-2 shrink-0 flex items-center gap-2 sm:gap-3 bg-white/[0.03] rounded-lg px-2 sm:px-3 border border-white/5 min-w-0 overflow-hidden">
+                        <button
+                          onClick={() => setIsPlaying(!isPlaying)}
+                          className="w-7 h-7 rounded-full flex items-center justify-center bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 shrink-0"
+                        >
+                          {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                        </button>
+                        <span className="text-[9px] font-mono text-white/30 shrink-0 w-8 text-center truncate">
+                          {(progress * 100).toFixed(0)}%
+                        </span>
+                        <input 
+                          type="range" min="0" max="1" step="0.001" value={progress}
+                          onChange={(e) => setProgress(parseFloat(e.target.value))}
+                          className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500 outline-none min-w-0"
+                        />
+                        <button 
+                          onClick={() => {
+                            const pr = prompt("请输入调整建议：");
+                            if (pr) handleSendMessage(pr, true);
+                          }}
+                          className="px-2 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-[8px] font-bold text-purple-400 uppercase border border-purple-500/20 rounded-md shrink-0"
+                        >
+                          <span className="hidden sm:inline">微调</span>
+                          <span className="sm:hidden">FIX</span>
+                        </button>
+                      </div>
+                    </div>
+                  </Panel>
+                )}
 
-      {/* AI Sidebar (Chat) */}
-      <motion.div 
-        initial={false}
-        animate={{ width: isChatOpen ? '400px' : '0' }}
-        className="shrink-0 overflow-hidden bg-[#0D0D0D]"
-      >
-        <div className="w-[400px] h-full">
-          <Chat 
-            messages={activeSession.messages}
-            isLoading={isLoading}
-            onSendMessage={(content) => handleSendMessage(content)}
-            onAnimationGenerated={() => {}}
-          />
-        </div>
-      </motion.div>
+                {isPreviewVisible && isEditorVisible && (
+                  <Separator className="h-1 bg-[#111] hover:bg-purple-500/20 transition-colors flex items-center justify-center group cursor-row-resize z-50 shrink-0">
+                    <GripHorizontal className="w-3 h-3 text-white/5 group-hover:text-purple-500/40" />
+                  </Separator>
+                )}
+
+                {/* EDITOR */}
+                {isEditorVisible && (
+                  <Panel id="editor-panel" defaultSize={40} minSize={0} className="relative min-h-0 min-w-0">
+                    <div className="absolute inset-0 flex flex-col p-2 sm:p-3 overflow-hidden min-h-0 min-w-0">
+                      <div className="flex-1 rounded-lg overflow-hidden border border-white/5 bg-[#0D0D0D]/30 relative min-h-0 min-w-0">
+                        <CodeEditor 
+                          code={localCode} 
+                          onChange={handleLocalCodeChange}
+                          onLineClick={handleLineClick}
+                          theme={settings.theme}
+                        />
+                        
+                        <AnimatePresence>
+                          {hasUnsavedChanges && (
+                            <motion.div 
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 10 }}
+                              className="absolute bottom-3 right-3 z-20 flex items-center gap-3 bg-purple-600 px-2 py-1.5 rounded-lg shadow-xl border border-white/10"
+                            >
+                              <span className="text-[8px] sm:text-[9px] font-bold text-white uppercase tracking-wider truncate">已更改</span>
+                              <button 
+                                onClick={handleReRender}
+                                disabled={isLoading}
+                                className="bg-white text-purple-600 px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black hover:bg-white/90 disabled:opacity-50 shrink-0"
+                              >
+                                {isLoading ? '...' : '刷新'}
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </Panel>
+                )}
+              </Group>
+
+              {!isPreviewVisible && !isEditorVisible && (
+                <div className="absolute inset-0 flex items-center justify-center text-white/5 uppercase tracking-[1em] font-black text-[10px] pointer-events-none">
+                  EMPTY
+                </div>
+              )}
+            </div>
+          </div>
+        </Panel>
+
+        <Separator className="w-1 bg-[#111] hover:bg-purple-500/30 transition-colors flex items-center justify-center group cursor-col-resize z-50 shrink-0">
+          <div className="w-[1px] h-10 bg-white/10 group-hover:bg-purple-500/50 transition-colors" />
+        </Separator>
+
+        {/* AI SIDEBAR */}
+        <Panel 
+          id="chat-panel" 
+          order={2}
+          panelRef={chatPanelRef}
+          defaultSize={30} 
+          minSize={0} 
+          collapsible
+          className="relative min-w-0 min-h-0 z-10"
+          onResize={(size) => setIsChatCollapsed(size.asPercentage === 0)}
+        >
+          <div className="absolute inset-0 flex flex-col bg-[#0D0D0D] overflow-hidden min-w-0 min-h-0 border-l border-white/5">
+            <Chat 
+              messages={activeSession.messages}
+              isLoading={isLoading}
+              onSendMessage={(content) => handleSendMessage(content)}
+              onAnimationGenerated={() => {}}
+            />
+          </div>
+        </Panel>
+      </Group>
     </div>
   );
 }

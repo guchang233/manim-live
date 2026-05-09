@@ -21,3 +21,15 @@ export interface Session {
   currentProject: Partial<ManimProject>;
   updatedAt: number;
 }
+
+export interface UserSettings {
+  customSystemPrompt: string;
+  model: string;
+  theme: 'vs-dark' | 'light';
+}
+
+export const DEFAULT_SETTINGS: UserSettings = {
+  customSystemPrompt: '',
+  model: 'gemini-1.5-pro',
+  theme: 'vs-dark'
+};

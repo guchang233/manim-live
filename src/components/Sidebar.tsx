@@ -13,7 +13,7 @@ interface SidebarProps {
 
 export default function Sidebar({ sessions, activeSessionId, onSelectSession, onNewSession, onDeleteSession }: SidebarProps) {
   return (
-    <div className="w-64 h-full bg-[#0D0D0D] border-r border-white/5 flex flex-col shrink-0">
+    <div className="h-full bg-[#0D0D0D] border-r border-white/5 flex flex-col min-w-0">
       <div className="p-4">
         <button
           onClick={onNewSession}
