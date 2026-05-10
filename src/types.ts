@@ -26,10 +26,14 @@ export interface UserSettings {
   customSystemPrompt: string;
   model: string;
   theme: 'vs-dark' | 'light';
+  apiBaseUrl: string;
+  customApiKey: string;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
   customSystemPrompt: '',
-  model: 'gemini-1.5-pro',
-  theme: 'vs-dark'
+  model: 'gemini-3.1-pro-preview',
+  theme: 'vs-dark',
+  apiBaseUrl: '',
+  customApiKey: ''
 };

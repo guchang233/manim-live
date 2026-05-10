@@ -33,40 +33,48 @@ export default function Chat({ onAnimationGenerated, isLoading, messages, onSend
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#161616] border-r border-white/10 w-full min-w-0">
-      <div className="p-4 border-bottom border-white/5 flex items-center justify-between">
-        <h2 className="text-white font-semibold flex items-center gap-2">
-          <Bot className="w-5 h-5 text-purple-400" />
-          Manim AI 助手
-        </h2>
-        <div className="flex gap-2">
-          <BookOpen className="w-4 h-4 text-white/40 cursor-help" />
+    <div className="flex flex-col h-full bg-[#080808] w-full min-w-0">
+      <div className="p-5 border-b border-white/5 flex items-center justify-between bg-[#0A0A0A]/50 backdrop-blur-md shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+            <Bot className="w-4 h-4 text-purple-400" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <h2 className="text-[11px] font-black text-white uppercase tracking-[0.2em] leading-tight">Manim AI Core</h2>
+            <span className="text-[8px] text-green-400/70 font-mono tracking-widest uppercase mt-0.5 animate-pulse">Online & Ready</span>
+          </div>
         </div>
+        <button className="p-2 hover:bg-white/5 rounded-xl transition-colors text-white/20 hover:text-white">
+          <BookOpen className="w-4 h-4" />
+        </button>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-8 scroll-smooth custom-scrollbar">
         <AnimatePresence initial={false}>
           {messages.length === 0 && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="text-center py-12 space-y-4"
+              className="text-center py-16 flex flex-col items-center"
             >
-              <div className="w-16 h-16 bg-purple-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Plus className="w-8 h-8 text-purple-400" />
+              <div className="w-20 h-20 bg-purple-500/5 rounded-3xl flex items-center justify-center mb-6 border border-purple-500/10 group">
+                <Plus className="w-10 h-10 text-purple-500 group-hover:scale-110 transition-transform" />
               </div>
-              <p className="text-white/60 text-sm max-w-[240px] mx-auto">
-                今天想制作什么样的 Manim 动画？
+              <h3 className="text-sm font-bold text-white mb-2">欢迎来到 Manim Studio</h3>
+              <p className="text-white/30 text-[10px] max-w-[200px] mx-auto uppercase tracking-widest leading-loose">
+                描述您想要生成的数学动画，AI 将为您编写 Python 代码并同步预览。
               </p>
-              <div className="grid grid-cols-1 gap-2 p-4">
-                {['一个脉动的数学圆', '正弦波生成动画', '圆形变换为正方形'].map(suggestion => (
+              
+              <div className="grid grid-cols-1 gap-2 mt-8 w-full max-w-[240px]">
+                {['一个脉动的分形圆', '傅里叶变换可视化', '勾股定理几何证明'].map(suggestion => (
                   <button
                     key={suggestion}
                     onClick={() => onSendMessage(suggestion)}
-                    className="text-xs text-left p-2 rounded bg-white/5 border border-white/5 hover:bg-white/10 transition-colors text-white/50"
+                    className="text-[10px] font-bold text-left px-4 py-3 rounded-2xl bg-white/5 border border-white/5 hover:border-purple-500/30 hover:bg-purple-500/5 transition-all text-white/40 hover:text-purple-300 group"
                   >
-                    " {suggestion} "
+                    <span className="opacity-40 group-hover:opacity-100 transition-opacity mr-2">/</span>
+                    {suggestion}
                   </button>
                 ))}
               </div>
@@ -76,36 +84,41 @@ export default function Chat({ onAnimationGenerated, isLoading, messages, onSend
           {messages.map((message) => (
             <motion.div
               key={message.id}
-              initial={{ opacity: 0, y: 10, scale: 0.98 }}
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
               className={cn(
-                "flex flex-col gap-2 max-w-[85%] mb-6",
-                message.role === 'user' ? "ml-auto items-end" : "mr-auto items-start"
+                "flex flex-col gap-3 w-full",
+                message.role === 'user' ? "items-end pl-8" : "items-start pr-8"
               )}
             >
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 px-1">
                 {message.role === 'user' ? (
                   <>
-                    <span className="text-[10px] text-white/40 uppercase tracking-widest">你</span>
-                    <User className="w-4 h-4 text-white/40" />
+                    <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">User Profile</span>
+                    <div className="w-5 h-5 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
+                      <User className="w-3 h-3 text-white/40" />
+                    </div>
                   </>
                 ) : (
                   <>
-                    <Bot className="w-4 h-4 text-purple-400" />
-                    <span className="text-[10px] text-white/40 uppercase tracking-widest">助手</span>
+                    <div className="w-5 h-5 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                      <Bot className="w-3 h-3 text-purple-400" />
+                    </div>
+                    <span className="text-[8px] font-black text-purple-400 uppercase tracking-[0.2em]">Studio Assistant</span>
                   </>
                 )}
               </div>
+              
               <div
                 className={cn(
-                  "p-3 rounded-2xl text-sm leading-relaxed overflow-hidden",
+                   "p-4 rounded-3xl text-[13px] leading-relaxed relative group overflow-hidden",
                   message.role === 'user' 
-                    ? "bg-purple-600 text-white rounded-tr-none shadow-[0_4px_12px_rgba(147,51,234,0.2)]" 
-                    : "bg-white/5 text-white/80 border border-white/10 rounded-tl-none shadow-xl"
+                    ? "bg-purple-600 text-white rounded-tr-sm shadow-xl shadow-purple-600/10" 
+                    : "bg-[#111111] text-white/90 border border-white/5 rounded-tl-sm shadow-2xl"
                 )}
               >
-                <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/5">
+                <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-black/30 prose-pre:border prose-pre:border-white/5 prose-code:text-purple-300">
                   <ReactMarkdown
                     remarkPlugins={[remarkMath]}
                     rehypePlugins={[rehypeKatex]}
@@ -122,39 +135,57 @@ export default function Chat({ onAnimationGenerated, isLoading, messages, onSend
           <motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-2 mr-auto items-start max-w-[85%]"
+            className="flex flex-col gap-3 mr-auto items-start pr-8"
           >
-            <div className="flex items-center gap-2 mb-1">
-              <Bot className="w-4 h-4 text-purple-400" />
-              <span className="text-[10px] text-white/40 uppercase tracking-widest">思考中...</span>
+            <div className="flex items-center gap-2 px-1">
+              <div className="w-5 h-5 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+                <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
+              </div>
+              <span className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em]">Processing Stream...</span>
             </div>
-            <div className="bg-white/5 text-white/80 border border-white/10 p-3 rounded-2xl rounded-tl-none">
-              <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+            <div className="bg-[#111] text-white/80 border border-white/5 p-4 rounded-3xl rounded-tl-sm w-16 flex justify-center">
+              <div className="flex gap-1">
+                <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                <div className="w-1 h-1 bg-purple-400 rounded-full animate-bounce" />
+              </div>
             </div>
           </motion.div>
         )}
       </div>
 
-      <div className="p-4 bg-black/20 border-t border-white/10">
-        <form onSubmit={handleSubmit} className="relative">
+      <div className="p-5 bg-[#0A0A0A] border-t border-white/5 shrink-0">
+        <form onSubmit={handleSubmit} className="relative group">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="描述你的动画需求..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-4 pr-12 text-white text-sm focus:outline-none focus:border-purple-500/50 transition-colors"
+            placeholder="请输入指令 (例如: 生成正弦波动画)..."
+            className="w-full bg-white/5 border border-white/5 rounded-2xl py-4 pl-5 pr-14 text-white text-sm focus:outline-none focus:border-purple-500/50 transition-all font-medium placeholder:text-white/10"
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 top-1.5 p-1.5 text-purple-400 hover:text-purple-300 disabled:text-white/20 transition-colors"
+            className={cn(
+              "absolute right-2.5 top-2.5 w-9 h-9 rounded-xl flex items-center justify-center transition-all",
+              input.trim() && !isLoading 
+                ? "bg-purple-600 text-white shadow-lg shadow-purple-600/20 hover:scale-105 active:scale-95" 
+                : "text-white/10"
+            )}
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-4 h-4" />
           </button>
         </form>
-        <p className="text-[10px] text-white/20 mt-3 text-center uppercase tracking-widest">
-          AI 支持的 Manim 工作流 : v1.1
-        </p>
+        <div className="flex items-center justify-between mt-4 px-1">
+          <p className="text-[8px] text-white/10 uppercase tracking-[0.3em] font-black">
+            Manim Engine v2.0
+          </p>
+          <div className="flex items-center gap-1.5 grayscale opacity-30">
+             <div className="w-3 h-3 bg-white/20 rounded-full" />
+             <div className="w-3 h-3 bg-white/20 rounded-full" />
+             <div className="w-3 h-3 bg-white/20 rounded-full" />
+          </div>
+        </div>
       </div>
     </div>
   );

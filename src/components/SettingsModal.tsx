@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, RotateCcw, Sparkles, Cpu, Palette } from 'lucide-react';
+import { X, Save, RotateCcw, Sparkles, Cpu, Palette, Globe, Key } from 'lucide-react';
 import { UserSettings, DEFAULT_SETTINGS } from '../types';
 
 interface SettingsModalProps {
@@ -26,19 +26,20 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }: Set
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 px-4 flex items-center justify-center"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed z-[60] w-full max-w-lg bg-[#0D0D0D] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative z-[60] w-full max-w-lg bg-[#0D0D0D] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            >
             <div className="flex items-center justify-between p-6 border-b border-white/5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
@@ -57,19 +58,52 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }: Set
               </button>
             </div>
 
-            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-              {/* Model Selection */}
-              <div className="space-y-3">
+            <div className="p-6 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
+              {/* API Configuration */}
+              <div className="space-y-4">
                 <label className="flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                  <Cpu className="w-3 h-3" />
-                  模型选择
+                  <Globe className="w-3.5 h-3.5" />
+                  API 配置 (兼容 OpenAI 格式)
+                </label>
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] text-white/20 uppercase ml-1">Base URL</p>
+                    <input 
+                      type="text"
+                      value={localSettings.apiBaseUrl}
+                      onChange={(e) => setLocalSettings({ ...localSettings, apiBaseUrl: e.target.value })}
+                      placeholder="https://api.openai.com/v1 (留空使用默认)"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/80 focus:outline-none focus:border-purple-500/30 transition-all font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[9px] text-white/20 uppercase ml-1">API Key</p>
+                    <div className="relative">
+                      <input 
+                        type="password"
+                        value={localSettings.customApiKey}
+                        onChange={(e) => setLocalSettings({ ...localSettings, customApiKey: e.target.value })}
+                        placeholder="sk-..."
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/80 focus:outline-none focus:border-purple-500/30 transition-all font-mono"
+                      />
+                      <Key className="absolute right-4 top-2.5 w-3.5 h-3.5 text-white/10" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Model Selection */}
+              <div className="space-y-4">
+                <label className="flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                  <Cpu className="w-3.5 h-3.5" />
+                  模型设置
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash-exp'].map((m) => (
+                  {['gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite'].map((m) => (
                     <button
                       key={m}
                       onClick={() => setLocalSettings({ ...localSettings, model: m })}
-                      className={`px-4 py-2.5 rounded-xl text-xs font-medium border transition-all ${
+                      className={`px-3 py-2.5 rounded-xl text-[10px] font-medium border transition-all truncate ${
                         localSettings.model === m 
                           ? 'bg-purple-600/10 border-purple-500/30 text-purple-400' 
                           : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'
@@ -78,6 +112,16 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }: Set
                       {m}
                     </button>
                   ))}
+                </div>
+                <div className="space-y-1.5 mt-2">
+                  <p className="text-[9px] text-white/20 uppercase ml-1">自定义模型名称</p>
+                  <input 
+                    type="text"
+                    value={localSettings.model}
+                    onChange={(e) => setLocalSettings({ ...localSettings, model: e.target.value })}
+                    placeholder="输入或选择模型 ID"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/80 focus:outline-none focus:border-purple-500/30 transition-all font-mono"
+                  />
                 </div>
               </div>
 
@@ -156,6 +200,7 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }: Set
               </div>
             </div>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Code, Eye, Layers, Settings2, Download, Copy, Check, Menu, MessageSquare, Play, Pause, GripVertical, GripHorizontal } from 'lucide-react';
+import { Code, Eye, Layers, Settings2, Download, Copy, Check, Menu, MessageSquare, Play, Pause, GripHorizontal } from 'lucide-react';
 import { Panel, Group, Separator, PanelImperativeHandle } from 'react-resizable-panels';
 import Chat from './components/Chat';
 import Sidebar from './components/Sidebar';
@@ -13,7 +13,7 @@ import { cn } from './lib/utils';
 
 const DEFAULT_PROJECT = {
   manimCode: '# 您的 Manim 代码将显示在这里',
-  previewCode: '() => <div className="text-white/20">暂无预览</div>',
+  previewCode: 'export default () => <div className="text-white/20 p-8 text-center text-xs font-mono uppercase tracking-widest">Awaiting First Generation</div>',
   name: '未命名动画'
 };
 
@@ -34,7 +34,12 @@ export default function App() {
     const saved = localStorage.getItem('manim_settings');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        // Sanitize model choice if it's deprecated or prohibited
+        if (['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'].includes(parsed.model)) {
+          parsed.model = DEFAULT_SETTINGS.model;
+        }
+        return parsed;
       } catch (e) {
         return DEFAULT_SETTINGS;
       }
@@ -57,6 +62,7 @@ export default function App() {
   const [copied, setCopied] = useState(false);
   const [progress, setProgress] = useState(0.5);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [activeTab, setActiveTab] = useState<'python' | 'react'>('python');
   const [localCode, setLocalCode] = useState<string>('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -66,28 +72,56 @@ export default function App() {
 
   useEffect(() => {
     if (activeSession) {
-      const code = activeSession.currentProject.manimCode || '';
+      const code = activeTab === 'python' 
+        ? (activeSession.currentProject.manimCode || '')
+        : (activeSession.currentProject.previewCode || '');
       setLocalCode(code);
       setHasUnsavedChanges(false);
     }
-  }, [activeSessionId, activeSession?.currentProject.manimCode]);
+  }, [activeSessionId, activeSession?.currentProject.manimCode, activeSession?.currentProject.previewCode, activeTab]);
 
   const handleLocalCodeChange = (val: string | undefined) => {
     const newVal = val || '';
     setLocalCode(newVal);
-    setHasUnsavedChanges(newVal !== activeSession?.currentProject.manimCode);
+    
+    const originalCode = activeTab === 'python' 
+      ? activeSession?.currentProject.manimCode 
+      : activeSession?.currentProject.previewCode;
+      
+    setHasUnsavedChanges(newVal !== originalCode);
+    
+    // For React tab, we can enable "Live" updates if we want, 
+    // but to keep it consistent with Python, we still use the Render button or just update state.
+    // Let's make React LIVE by default if user is in that tab.
+    if (activeTab === 'react' && activeSession) {
+      updateSession(activeSession.id, {
+        currentProject: {
+          ...activeSession.currentProject,
+          previewCode: newVal
+        }
+      });
+    }
   };
 
   const handleReRender = async () => {
     if (!activeSession) return;
     setIsLoading(true);
     try {
-      updateSession(activeSession.id, {
-        currentProject: {
-          ...activeSession.currentProject,
-          manimCode: localCode
-        }
-      });
+      if (activeTab === 'python') {
+        updateSession(activeSession.id, {
+          currentProject: {
+            ...activeSession.currentProject,
+            manimCode: localCode
+          }
+        });
+      } else {
+        updateSession(activeSession.id, {
+          currentProject: {
+            ...activeSession.currentProject,
+            previewCode: localCode
+          }
+        });
+      }
       setHasUnsavedChanges(false);
     } catch (e) {
       console.error(e);
@@ -245,14 +279,13 @@ export default function App() {
       />
 
       <Group 
-        direction="horizontal" 
+        orientation="horizontal" 
         className="flex-1 h-full w-full overflow-hidden min-w-0 min-h-0" 
         id="main-app-layout"
       >
         {/* SESSIONS SIDEBAR */}
         <Panel 
           id="sidebar-panel"
-          order={0}
           panelRef={sidebarPanelRef}
           defaultSize={20} 
           minSize={0} 
@@ -276,75 +309,108 @@ export default function App() {
         </Separator>
 
         {/* MAIN WORKSPACE */}
-        <Panel id="content-panel" order={1} minSize={0} defaultSize={50} className="relative min-w-0 min-h-0 flex-1 z-0">
-          <div className="absolute inset-0 flex flex-col bg-[#050505] overflow-hidden min-w-0 min-h-0">
-            {/* Minimal Header */}
-            <header className="h-12 border-b border-white/5 flex items-center justify-between px-3 bg-[#0A0A0A]/50 backdrop-blur-sm z-10 shrink-0 min-w-0 overflow-hidden">
-              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden shrink-0">
+        <Panel 
+          id="content-panel" 
+          minSize={0} 
+          defaultSize={50} 
+          className="relative min-w-0"
+        >
+          <div className="absolute inset-0 flex flex-col bg-[#050505] overflow-hidden">
+            {/* Elegant Header */}
+            <header className="h-14 border-b border-white/5 flex items-center justify-between px-4 bg-[#0A0A0A]/30 backdrop-blur-xl z-20 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
                 <button 
                   onClick={toggleSidebar}
                   className={cn(
-                    "p-1.5 rounded-md transition-colors shrink-0",
-                    !isSidebarCollapsed ? "text-white/30 hover:text-white hover:bg-white/5" : "bg-purple-500/20 text-purple-400"
+                    "p-2 rounded-xl transition-all shrink-0",
+                    !isSidebarCollapsed 
+                      ? "text-white/20 hover:text-white hover:bg-white/5" 
+                      : "bg-purple-500/10 text-purple-400 border border-purple-500/20 shadow-lg shadow-purple-500/10"
                   )}
                 >
-                  <Menu className="w-3.5 h-3.5" />
+                  <Menu className="w-4 h-4" />
                 </button>
                 
-                <div className="flex items-center gap-0.5 bg-white/5 p-0.5 rounded-md border border-white/5 min-w-0 overflow-hidden shrink-0">
-                  <span className="hidden md:block px-2 text-[10px] font-bold text-white/20 uppercase tracking-widest truncate max-w-[60px]">
-                    {activeSession.title}
-                  </span>
-                  <div className="flex items-center shrink-0">
+                <div className="flex items-center gap-2 bg-white/5 p-1 rounded-xl border border-white/5 min-w-0 overflow-hidden">
+                  <div className="flex bg-white/5 rounded-lg p-0.5 mr-2">
+                    <button 
+                      onClick={() => setActiveTab('python')}
+                      className={cn(
+                        "px-2 py-1 text-[9px] font-bold rounded-md transition-all",
+                        activeTab === 'python' ? "bg-white/10 text-white shadow-sm" : "text-white/30 hover:text-white/50"
+                      )}
+                    >
+                      PYTHON
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('react')}
+                      className={cn(
+                        "px-2 py-1 text-[9px] font-bold rounded-md transition-all",
+                        activeTab === 'react' ? "bg-white/10 text-white shadow-sm" : "text-white/30 hover:text-white/50"
+                      )}
+                    >
+                      REACT
+                    </button>
+                  </div>
+                  <div className="px-3 py-1 items-center gap-2 hidden lg:flex shrink-0">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate max-w-[150px]">
+                      {activeSession.title}
+                    </span>
+                  </div>
+                  <div className="h-4 w-px bg-white/5 hidden lg:block" />
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => setIsPreviewVisible(!isPreviewVisible)}
                       className={cn(
-                        "p-1.5 rounded-sm transition-all",
+                        "p-1.5 rounded-lg transition-all",
                         isPreviewVisible ? "bg-white/10 text-white" : "text-white/20 hover:text-white/40"
                       )}
+                      title="预览 (Ctrl+P)"
                     >
-                      <Eye className="w-3 h-3" />
+                      <Eye className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => setIsEditorVisible(!isEditorVisible)}
                       className={cn(
-                        "p-1.5 rounded-sm transition-all",
+                        "p-1.5 rounded-lg transition-all",
                         isEditorVisible ? "bg-white/10 text-white" : "text-white/20 hover:text-white/40"
                       )}
+                      title="源码 (Ctrl+E)"
                     >
-                      <Code className="w-3 h-3" />
+                      <Code className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0 ml-auto overflow-hidden">
+              <div className="flex items-center gap-2 ml-auto">
                 <button 
                   onClick={() => copyToClipboard(activeSession.currentProject.manimCode || '')}
-                  className="flex items-center gap-1.5 px-2 py-1 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 rounded-md text-purple-400 transition-all shrink-0"
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white/60 hover:text-white transition-all shrink-0 active:scale-95"
                 >
-                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  <span className="hidden lg:inline text-[9px] font-bold uppercase tracking-widest">{copied ? '已复制' : '复制'}</span>
+                  {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span className="hidden sm:inline text-[10px] font-bold uppercase tracking-widest">{copied ? '已复制' : '复制 Python'}</span>
                 </button>
                 
                 <button 
                   onClick={() => setIsSettingsOpen(true)}
-                  className="p-1.5 hover:bg-white/5 rounded-md transition-colors text-white/30 hover:text-white shrink-0"
+                  className="p-2 hover:bg-white/5 rounded-xl transition-colors text-white/30 hover:text-white shrink-0"
                 >
-                  <Settings2 className="w-3.5 h-3.5" />
+                  <Settings2 className="w-4 h-4" />
                 </button>
 
                 <button 
                   onClick={toggleChat}
                   className={cn(
-                    "flex items-center gap-1.5 px-2 py-1 rounded-md text-[9px] font-bold transition-all border shrink-0",
+                    "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all border shrink-0 active:scale-95",
                     !isChatCollapsed 
-                      ? "bg-purple-500/20 border-purple-500/40 text-purple-400" 
+                      ? "bg-purple-600/10 border-purple-500/30 text-purple-400" 
                       : "bg-white/5 border-white/5 text-white/30 hover:text-white"
                   )}
                 >
-                  <MessageSquare className="w-3 h-3" />
-                  <span className="hidden sm:inline uppercase">AI</span>
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="hidden md:inline uppercase tracking-widest">AI</span>
                 </button>
               </div>
             </header>
@@ -354,37 +420,44 @@ export default function App() {
               <Group orientation="vertical" id="viewport-group" className="absolute inset-0 h-full w-full overflow-hidden min-h-0 min-w-0">
                 {/* PREVIEW */}
                 {isPreviewVisible && (
-                  <Panel id="preview-panel" defaultSize={60} minSize={0} className="relative min-h-0 min-w-0">
-                    <div className="absolute inset-0 flex flex-col p-2 sm:p-3 overflow-hidden min-h-0 min-w-0">
-                      <div className="flex-1 min-h-0 min-w-0 relative bg-black rounded-lg overflow-hidden border border-white/5 shadow-2xl">
+                  <Panel id="preview-panel" defaultSize={60} minSize={0} className="relative min-h-0">
+                    <div className="absolute inset-0 flex flex-col p-4 overflow-hidden">
+                      <div className="flex-1 min-h-0 relative bg-black rounded-2xl overflow-hidden border border-white/5 shadow-2xl">
                         <Preview code={activeSession.currentProject.previewCode || ''} progress={progress} />
                       </div>
                       
-                      {/* Controller */}
-                      <div className="h-10 mt-2 shrink-0 flex items-center gap-2 sm:gap-3 bg-white/[0.03] rounded-lg px-2 sm:px-3 border border-white/5 min-w-0 overflow-hidden">
+                      {/* Integrated Playback Bar */}
+                      <div className="h-14 mt-4 shrink-0 flex items-center gap-4 bg-white/[0.02] backdrop-blur-md rounded-2xl px-5 border border-white/5 overflow-hidden">
                         <button
                           onClick={() => setIsPlaying(!isPlaying)}
-                          className="w-7 h-7 rounded-full flex items-center justify-center bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 shrink-0"
+                          className={cn(
+                            "w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 active:scale-95",
+                            isPlaying ? "bg-white/10 text-white" : "bg-purple-500 text-white shadow-lg shadow-purple-500/20"
+                          )}
                         >
-                          {isPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                          {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 ml-1 fill-current" />}
                         </button>
-                        <span className="text-[9px] font-mono text-white/30 shrink-0 w-8 text-center truncate">
-                          {(progress * 100).toFixed(0)}%
-                        </span>
-                        <input 
-                          type="range" min="0" max="1" step="0.001" value={progress}
-                          onChange={(e) => setProgress(parseFloat(e.target.value))}
-                          className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-purple-500 outline-none min-w-0"
-                        />
+                        
+                        <div className="flex flex-col gap-1 flex-1 min-w-0">
+                          <div className="flex justify-between items-center px-1">
+                            <span className="text-[9px] font-mono font-bold text-white/40 tracking-widest uppercase">Timeline</span>
+                            <span className="text-[9px] font-mono font-bold text-purple-400">{(progress * 100).toFixed(1)}%</span>
+                          </div>
+                          <input 
+                            type="range" min="0" max="1" step="0.001" value={progress}
+                            onChange={(e) => setProgress(parseFloat(e.target.value))}
+                            className="w-full h-1 bg-white/5 rounded-full appearance-none cursor-pointer accent-purple-500 outline-none"
+                          />
+                        </div>
+
                         <button 
                           onClick={() => {
-                            const pr = prompt("请输入调整建议：");
+                            const pr = prompt("描述你想在当前时刻进行的视觉微调：");
                             if (pr) handleSendMessage(pr, true);
                           }}
-                          className="px-2 py-1 bg-purple-500/10 hover:bg-purple-500/20 text-[8px] font-bold text-purple-400 uppercase border border-purple-500/20 rounded-md shrink-0"
+                          className="px-4 h-10 bg-purple-500/10 hover:bg-purple-500/20 text-[10px] font-bold text-purple-400 uppercase tracking-widest border border-purple-500/20 rounded-xl transition-all active:scale-95 shrink-0"
                         >
-                          <span className="hidden sm:inline">微调</span>
-                          <span className="sm:hidden">FIX</span>
+                          微调
                         </button>
                       </div>
                     </div>
@@ -397,33 +470,44 @@ export default function App() {
                   </Separator>
                 )}
 
-                {/* EDITOR */}
+                {/* EDITOR PANEL */}
                 {isEditorVisible && (
-                  <Panel id="editor-panel" defaultSize={40} minSize={0} className="relative min-h-0 min-w-0">
-                    <div className="absolute inset-0 flex flex-col p-2 sm:p-3 overflow-hidden min-h-0 min-w-0">
-                      <div className="flex-1 rounded-lg overflow-hidden border border-white/5 bg-[#0D0D0D]/30 relative min-h-0 min-w-0">
+                  <Panel id="editor-panel" defaultSize={40} minSize={0} className="relative min-h-0">
+                    <div className="absolute inset-0 flex flex-col p-4 overflow-hidden">
+                      <div className="flex-1 rounded-2xl overflow-hidden border border-white/5 bg-[#0D0D0D]/30 relative group shadow-inner">
+                        <div className="absolute top-3 left-4 z-10 flex items-center gap-2 opacity-30 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          <Code className="w-3 h-3" />
+                          <span className="text-[9px] font-bold uppercase tracking-[0.3em]">
+                            {activeTab === 'python' ? 'Python Source' : 'React Component (Live)'}
+                          </span>
+                        </div>
+                        
                         <CodeEditor 
                           code={localCode} 
                           onChange={handleLocalCodeChange}
                           onLineClick={handleLineClick}
                           theme={settings.theme}
+                          language={activeTab === 'python' ? 'python' : 'javascript'}
                         />
                         
                         <AnimatePresence>
                           {hasUnsavedChanges && (
                             <motion.div 
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: 10 }}
-                              className="absolute bottom-3 right-3 z-20 flex items-center gap-3 bg-purple-600 px-2 py-1.5 rounded-lg shadow-xl border border-white/10"
+                              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                              className="absolute bottom-5 right-5 z-20 flex items-center gap-4 bg-purple-600 px-4 py-2.5 rounded-2xl shadow-2xl border border-white/10"
                             >
-                              <span className="text-[8px] sm:text-[9px] font-bold text-white uppercase tracking-wider truncate">已更改</span>
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-white leading-none uppercase tracking-widest">已在本地修改</span>
+                                <span className="text-[8px] text-white/50 mt-1 uppercase tracking-tighter text-left">渲染预览？</span>
+                              </div>
                               <button 
                                 onClick={handleReRender}
                                 disabled={isLoading}
-                                className="bg-white text-purple-600 px-2 py-1 rounded-md text-[8px] sm:text-[9px] font-black hover:bg-white/90 disabled:opacity-50 shrink-0"
+                                className="bg-white text-purple-600 px-4 py-1.5 rounded-xl text-[10px] font-black hover:scale-105 active:scale-95 transition-all disabled:opacity-50 shrink-0"
                               >
-                                {isLoading ? '...' : '刷新'}
+                                {isLoading ? '...' : '立即渲染'}
                               </button>
                             </motion.div>
                           )}
@@ -450,15 +534,14 @@ export default function App() {
         {/* AI SIDEBAR */}
         <Panel 
           id="chat-panel" 
-          order={2}
           panelRef={chatPanelRef}
           defaultSize={30} 
           minSize={0} 
           collapsible
-          className="relative min-w-0 min-h-0 z-10"
+          className="relative z-10"
           onResize={(size) => setIsChatCollapsed(size.asPercentage === 0)}
         >
-          <div className="absolute inset-0 flex flex-col bg-[#0D0D0D] overflow-hidden min-w-0 min-h-0 border-l border-white/5">
+          <div className="absolute inset-0 flex flex-col bg-[#080808] overflow-hidden border-l border-white/5">
             <Chat 
               messages={activeSession.messages}
               isLoading={isLoading}
