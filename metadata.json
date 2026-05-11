@@ -1,6 +1,6 @@
 {
-  "name": "Manim Studio AI",
-  "description": "Professional AI-powered Manim animation studio with VS-Code inspired interface and real-time preview.",
+  "name": "Manim 智能动画工作站",
+  "description": "基于 AI 的专业 Manim 动画工作室，配备 VS-Code 风格界面和实时预览功能。",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

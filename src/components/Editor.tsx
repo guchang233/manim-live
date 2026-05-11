@@ -54,20 +54,20 @@ export default function CodeEditor({
         <div className="w-10 h-10 border border-red-500 flex items-center justify-center mb-4 text-red-500 uppercase font-bold">
           Err
         </div>
-        <h3 className="text-red-400 font-bold mb-2 uppercase tracking-widest text-xs">Load_Failed</h3>
+        <h3 className="text-red-400 font-bold mb-2 uppercase tracking-widest text-xs">加载失败</h3>
         <p className="text-red-400/60 text-[9px] mb-4 max-w-xs uppercase">{loadError}</p>
         <button 
           onClick={() => window.location.reload()}
           className="px-4 py-2 border border-red-500/40 hover:bg-red-500/10 text-red-500 text-[10px] font-bold uppercase tracking-widest transition-colors"
         >
-          RETRY_INIT
+          重试
         </button>
       </div>
     );
   }
 
   return (
-    <div className={cn("w-full h-full overflow-hidden", theme === 'light' ? "bg-white" : "bg-[#050505]")}>
+    <div className={cn("w-full h-full overflow-hidden", (theme === 'vs' || theme === 'light') ? "bg-white" : "bg-[#050505]")}>
       <Editor
         height="100%"
         defaultLanguage={language}
@@ -76,13 +76,13 @@ export default function CodeEditor({
         onMount={handleEditorDidMount}
         theme={theme}
         loading={
-          <div className={cn("flex flex-col items-center justify-center h-full gap-4 font-mono", theme === 'light' ? "bg-white" : "bg-[#050505]")}>
+          <div className={cn("flex flex-col items-center justify-center h-full gap-4 font-mono", (theme === 'vs' || theme === 'light') ? "bg-white" : "bg-[#050505]")}>
             <div className="w-10 h-10 border border-emerald-500/20 flex items-center justify-center">
               <div className="w-4 h-4 border border-emerald-500/40 animate-spin" />
             </div>
             <div className="flex flex-col items-center gap-1">
-              <span className="text-[10px] font-bold text-emerald-500/40 uppercase tracking-[0.3em]">INIT_BUFFER</span>
-              <span className="text-[8px] opacity-20 uppercase tracking-[0.5em]">MONACO_CORE</span>
+              <span className="text-[10px] font-bold text-emerald-500/40 uppercase tracking-[0.3em]">初始化缓冲区</span>
+              <span className="text-[8px] opacity-20 uppercase tracking-[0.5em]">编辑器核心</span>
             </div>
           </div>
         }

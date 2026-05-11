@@ -17,14 +17,14 @@ export default function Sidebar({ sessions, activeSessionId, onSelectSession, on
       <div className="flex-1 overflow-y-auto custom-scrollbar pt-1">
         <div className="group flex items-center px-1 py-1 hover:bg-[var(--bg-hover)] cursor-pointer text-[11px] font-bold text-[var(--text-main)] uppercase tracking-wider">
           <ChevronDown className="w-4 h-4 text-[var(--text-sub)]" />
-          <span className="ml-0.5">ANIMATION_PROJECTS</span>
+          <span className="ml-0.5">动画项目</span>
           <button
             onClick={(e) => {
               e.stopPropagation();
               onNewSession();
             }}
             className="ml-auto opacity-0 group-hover:opacity-100 p-1 hover:bg-[var(--border)] text-[var(--text-sub)] hover:text-[var(--text-main)] transition-all"
-            title="New Session"
+            title="新建会话"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
@@ -47,7 +47,7 @@ export default function Sidebar({ sessions, activeSessionId, onSelectSession, on
                   "w-4 h-4 shrink-0",
                   activeSessionId === session.id ? "text-[#007acc]" : "text-[var(--text-sub)]"
                 )} />
-                <span className="truncate">{session.title || 'Untitled Session'}</span>
+                <span className="truncate">{session.title || '未命名会话'}</span>
               </div>
               
               <button
@@ -74,8 +74,8 @@ export default function Sidebar({ sessions, activeSessionId, onSelectSession, on
             AI
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-[11px] font-medium text-[var(--text-main)] truncate">Manim Assistant</span>
-            <span className="text-[9px] text-[var(--text-sub)] leading-none">Studio Ready</span>
+            <span className="text-[11px] font-medium text-[var(--text-main)] truncate">Manim 助手</span>
+            <span className="text-[9px] text-[var(--text-sub)] leading-none">工作站就绪</span>
           </div>
         </div>
       </div>

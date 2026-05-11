@@ -76,7 +76,7 @@ export default function Preview({ code, className, progress = 0 }: PreviewProps)
           <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4 border border-red-500/20">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h3 className="text-red-400 font-bold mb-2 uppercase tracking-widest text-xs">Preview Render Failed</h3>
+          <h3 className="text-red-400 font-bold mb-2 uppercase tracking-widest text-xs">预览渲染失败</h3>
           <p className="text-red-300/50 text-[10px] font-mono leading-relaxed max-w-sm">{error}</p>
         </div>
       ) : Comp ? (
@@ -91,7 +91,7 @@ export default function Preview({ code, className, progress = 0 }: PreviewProps)
               <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
             </div>
           </div>
-          <p className="text-[10px]">Awaiting Core</p>
+          <p className="text-[10px]">等待核心模块</p>
         </div>
       )}
     </div>

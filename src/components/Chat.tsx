@@ -37,11 +37,11 @@ export default function Chat({ onAnimationGenerated, isLoading, messages, onSend
       <div className="h-9 px-3 border-b border-[var(--border)] flex items-center justify-between bg-[var(--bg-editor)] shrink-0 opacity-80">
         <div className="flex items-center gap-2">
           <Brain className="w-4 h-4 text-[var(--text-sub)]" />
-          <h2 className="text-[11px] font-medium text-[var(--text-main)] uppercase tracking-wider">AI Assistant</h2>
+          <h2 className="text-[11px] font-medium text-[var(--text-main)] uppercase tracking-wider">AI 助手</h2>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-          <span className="text-[10px] text-[var(--text-sub)] font-medium">Synced</span>
+          <span className="text-[10px] text-[var(--text-sub)] font-medium">已同步</span>
         </div>
       </div>
 
@@ -49,12 +49,12 @@ export default function Chat({ onAnimationGenerated, isLoading, messages, onSend
         {messages.length === 0 && (
           <div className="py-8 flex flex-col items-start gap-4">
             <div className="text-[12px] text-[var(--text-sub)] leading-relaxed">
-              <p className="font-semibold text-[var(--text-main)] mb-2">Welcome to Manim Studio AI</p>
-              <p>Type instructions to generate or modify animations. Use the "Tweak Frame" button in the player for micro-adjustments.</p>
+              <p className="font-semibold text-[var(--text-main)] mb-2">欢迎使用 Manim 智能动画工作站</p>
+              <p>输入指令来生成或修改动画。点击播放器中的“微调帧”按钮可进行精细调整。</p>
             </div>
             
             <div className="flex flex-wrap gap-2 w-full">
-              {['Fractal Pulse', 'Fourier Series', 'Pythagorean Theorem'].map(suggestion => (
+              {['脉冲分形', '傅里叶级数', '勾股定理可视化'].map(suggestion => (
                 <button
                   key={suggestion}
                   onClick={() => onSendMessage(suggestion)}
@@ -81,7 +81,7 @@ export default function Chat({ onAnimationGenerated, isLoading, messages, onSend
               <div className="flex-1 min-w-0 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
                   <span className="text-[12px] font-bold text-[var(--text-main)]">
-                    {message.role === 'user' ? 'You' : 'Assistant'}
+                    {message.role === 'user' ? '你' : '助手'}
                   </span>
                   <span className="text-[10px] text-[var(--text-sub)] opacity-60">
                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -126,11 +126,11 @@ export default function Chat({ onAnimationGenerated, isLoading, messages, onSend
                 handleSubmit(e);
               }
             }}
-            placeholder="Describe an animation..."
+            placeholder="描述一个动画..."
             className="w-full bg-transparent p-3 text-[var(--text-main)] text-[13px] focus:outline-none placeholder:text-[var(--text-sub)] resize-none min-h-[70px]"
           />
           <div className="flex items-center justify-between px-3 py-2 bg-[var(--bg-editor)]/50 border-t border-[var(--border)]/50">
-            <span className="text-[10px] text-[var(--text-sub)] opacity-60">Enter to send, Shift+Enter for new line</span>
+            <span className="text-[10px] text-[var(--text-sub)] opacity-60">Enter 发送，Shift+Enter 换行</span>
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
