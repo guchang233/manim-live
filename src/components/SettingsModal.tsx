@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, RotateCcw, Sparkles, Cpu, Palette, Globe, Key } from 'lucide-react';
+import { X, Save, RotateCcw, Sparkles, Cpu, Palette, Globe, Key, Settings2 } from 'lucide-react';
 import { UserSettings, DEFAULT_SETTINGS } from '../types';
 
 interface SettingsModalProps {
@@ -25,183 +25,155 @@ export default function SettingsModal({ isOpen, onClose, settings, onSave }: Set
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative z-[60] w-full max-w-lg bg-[#0D0D0D] border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-            >
-            <div className="flex items-center justify-between p-6 border-b border-white/5">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 font-sans">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="relative z-[110] w-full max-w-2xl bg-[#252526] border border-[#3c3c3c] shadow-2xl rounded-lg overflow-hidden flex flex-col"
+          >
+            <div className="flex items-center justify-between p-4 border-b border-[#3c3c3c] bg-[#252526]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider">用户设置</h2>
-                  <p className="text-[10px] text-white/30 uppercase tracking-widest leading-none mt-1">个性化您的 Manim 创造记录</p>
-                </div>
+                <Settings2 className="w-5 h-5 text-blue-400" />
+                <h2 className="text-[14px] font-medium text-white">Settings</h2>
               </div>
               <button 
                 onClick={onClose}
-                className="p-2 hover:bg-white/5 rounded-lg transition-colors text-white/40 hover:text-white"
+                className="p-1 hover:bg-[#37373d] rounded transition-colors text-[#858585] hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
-              {/* API Configuration */}
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                  <Globe className="w-3.5 h-3.5" />
-                  API 配置 (兼容 OpenAI 格式)
-                </label>
-                <div className="space-y-3">
-                  <div className="space-y-1.5">
-                    <p className="text-[9px] text-white/20 uppercase ml-1">Base URL</p>
-                    <input 
-                      type="text"
-                      value={localSettings.apiBaseUrl}
-                      onChange={(e) => setLocalSettings({ ...localSettings, apiBaseUrl: e.target.value })}
-                      placeholder="https://api.openai.com/v1 (留空使用默认)"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/80 focus:outline-none focus:border-purple-500/30 transition-all font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-[9px] text-white/20 uppercase ml-1">API Key</p>
-                    <div className="relative">
-                      <input 
-                        type="password"
-                        value={localSettings.customApiKey}
-                        onChange={(e) => setLocalSettings({ ...localSettings, customApiKey: e.target.value })}
-                        placeholder="sk-..."
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/80 focus:outline-none focus:border-purple-500/30 transition-all font-mono"
-                      />
-                      <Key className="absolute right-4 top-2.5 w-3.5 h-3.5 text-white/10" />
+            <div className="flex flex-1 overflow-hidden h-[500px]">
+              {/* Sidebar Navigation */}
+              <div className="w-48 bg-[#252526] border-r border-[#3c3c3c] p-2 space-y-1">
+                {['General', 'Editor', 'AI Models', 'Network'].map((tab) => (
+                  <button
+                    key={tab}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 rounded text-[12px] transition-colors",
+                      tab === 'General' ? "bg-[#37373d] text-white font-medium" : "text-[#cccccc] hover:bg-[#2a2d2e]"
+                    )}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Main Content Area */}
+              <div className="flex-1 p-6 space-y-8 overflow-y-auto custom-scrollbar bg-[#1e1e1e]">
+                {/* Visual Settings */}
+                <section className="space-y-4">
+                  <h3 className="text-[12px] font-bold text-[#858585] uppercase tracking-wider">Appearance</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <p className="text-[13px] text-white">Application Theme</p>
+                        <p className="text-[11px] text-[#858585]">Configure the color palette for the workspace.</p>
+                      </div>
+                      <div className="flex bg-[#252526] border border-[#3c3c3c] rounded p-0.5">
+                        <button 
+                          onClick={() => setLocalSettings({ ...localSettings, theme: 'vs-dark' })}
+                          className={cn(
+                            "px-3 py-1 rounded text-[11px] transition-all",
+                            localSettings.theme === 'vs-dark' ? "bg-[#007acc] text-white" : "text-[#858585] hover:text-white"
+                          )}
+                        >
+                          Dark
+                        </button>
+                        <button 
+                          onClick={() => setLocalSettings({ ...localSettings, theme: 'light' })}
+                          className={cn(
+                            "px-3 py-1 rounded text-[11px] transition-all",
+                            localSettings.theme === 'light' ? "bg-[#007acc] text-white" : "text-[#858585] hover:text-white"
+                          )}
+                        >
+                          Light
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </section>
 
-              {/* Model Selection */}
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                  <Cpu className="w-3.5 h-3.5" />
-                  模型设置
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {['gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite'].map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setLocalSettings({ ...localSettings, model: m })}
-                      className={`px-3 py-2.5 rounded-xl text-[10px] font-medium border transition-all truncate ${
-                        localSettings.model === m 
-                          ? 'bg-purple-600/10 border-purple-500/30 text-purple-400' 
-                          : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'
-                      }`}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-                <div className="space-y-1.5 mt-2">
-                  <p className="text-[9px] text-white/20 uppercase ml-1">自定义模型名称</p>
-                  <input 
-                    type="text"
-                    value={localSettings.model}
-                    onChange={(e) => setLocalSettings({ ...localSettings, model: e.target.value })}
-                    placeholder="输入或选择模型 ID"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white/80 focus:outline-none focus:border-purple-500/30 transition-all font-mono"
-                  />
-                </div>
-              </div>
+                {/* Model Configuration */}
+                <section className="space-y-4 pt-4 border-t border-[#3c3c3c]">
+                  <h3 className="text-[12px] font-bold text-[#858585] uppercase tracking-wider">AI Engines</h3>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                       <p className="text-[13px] text-white">Preferred Intelligence Model</p>
+                       <div className="grid grid-cols-1 gap-2">
+                         {['gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite'].map((m) => (
+                           <button
+                             key={m}
+                             onClick={() => setLocalSettings({ ...localSettings, model: m })}
+                             className={cn(
+                               "flex items-center gap-3 w-full px-3 py-2 rounded border transition-all text-left",
+                               localSettings.model === m 
+                                 ? "bg-[#007acc]/10 border-[#007acc] text-white" 
+                                 : "border-[#3c3c3c] bg-[#252526] text-[#858585] hover:border-[#454545]"
+                             )}
+                           >
+                             <div className={cn(
+                               "w-3 h-3 rounded-full border-2",
+                               localSettings.model === m ? "bg-white border-white" : "border-[#454545]"
+                             )} />
+                             <span className="text-[12px] font-mono">{m}</span>
+                           </button>
+                         ))}
+                       </div>
+                    </div>
+                  </div>
+                </section>
 
-              {/* Theme Selection */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                  <Palette className="w-3 h-3" />
-                  编辑器主题
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setLocalSettings({ ...localSettings, theme: 'vs-dark' })}
-                    className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-medium border transition-all ${
-                      localSettings.theme === 'vs-dark' 
-                        ? 'bg-purple-600/10 border-purple-500/30 text-purple-400' 
-                        : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'
-                    }`}
-                  >
-                    Dark (推荐)
-                  </button>
-                  <button
-                    onClick={() => setLocalSettings({ ...localSettings, theme: 'light' })}
-                    className={`flex-1 px-4 py-2.5 rounded-xl text-xs font-medium border transition-all ${
-                      localSettings.theme === 'light' 
-                        ? 'bg-purple-600/10 border-purple-500/30 text-purple-400' 
-                        : 'bg-white/5 border-white/5 text-white/40 hover:bg-white/10'
-                    }`}
-                  >
-                    Light
-                  </button>
-                </div>
-              </div>
-
-              {/* Custom Prompt */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 text-[10px] font-bold text-white/40 uppercase tracking-widest">
-                    <Sparkles className="w-3 h-3" />
-                    自定义系统提示词
-                  </label>
-                </div>
-                <textarea
-                  value={localSettings.customSystemPrompt}
-                  onChange={(e) => setLocalSettings({ ...localSettings, customSystemPrompt: e.target.value })}
-                  placeholder="例如：请确保生成的动画色彩鲜明，且公式总是显示在屏幕中央..."
-                  className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-xs text-white/80 focus:outline-none focus:border-purple-500/30 transition-colors resize-none"
-                />
-                <p className="text-[10px] text-white/20 italic">
-                  * 此提示词将附加到基础指令之后，用于微调 AI 的生成倾向。
-                </p>
+                {/* Developer Options */}
+                <section className="space-y-4 pt-4 border-t border-[#3c3c3c]">
+                  <h3 className="text-[12px] font-bold text-[#858585] uppercase tracking-wider">Developer Context</h3>
+                  <div className="space-y-2">
+                    <p className="text-[13px] text-white">System Prompt Injection</p>
+                    <p className="text-[11px] text-[#858585] mb-2">Override the AI's core behavior with custom instructions.</p>
+                    <textarea
+                      value={localSettings.customSystemPrompt}
+                      onChange={(e) => setLocalSettings({ ...localSettings, customSystemPrompt: e.target.value })}
+                      placeholder="Add system instructions here..."
+                      className="w-full h-32 bg-[#252526] border border-[#3c3c3c] rounded p-3 text-[12px] text-[#cccccc] focus:outline-none focus:border-[#007acc] transition-colors resize-none"
+                    />
+                  </div>
+                </section>
               </div>
             </div>
 
-            <div className="p-6 bg-black/20 border-t border-white/5 flex items-center justify-between gap-4">
+            <div className="p-4 border-t border-[#3c3c3c] bg-[#252526] flex items-center justify-between">
               <button
                 onClick={handleReset}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white/40 hover:text-white transition-colors"
+                className="text-[12px] text-[#858585] hover:text-white transition-colors"
               >
-                <RotateCcw className="w-4 h-4" />
-                重置默认
+                Reset to factory defaults
               </button>
               <div className="flex gap-2">
                 <button
                   onClick={onClose}
-                  className="px-6 py-2.5 rounded-xl text-xs font-bold text-white/40 hover:bg-white/5 transition-colors"
+                  className="px-4 py-1.5 text-[12px] rounded text-white hover:bg-[#37373d] transition-colors"
                 >
-                  取消
+                  Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl text-xs font-bold text-white transition-all shadow-lg active:scale-95"
+                  className="px-6 py-1.5 bg-[#007acc] hover:bg-[#118ad4] text-white text-[12px] font-medium rounded transition-colors shadow-lg"
                 >
-                  <Save className="w-4 h-4" />
-                  保存设置
+                  Save Changes
                 </button>
               </div>
             </div>
           </motion.div>
-          </div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );
