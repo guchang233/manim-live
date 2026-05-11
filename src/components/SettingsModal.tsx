@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Save, RotateCcw, Sparkles, Cpu, Palette, Globe, Key, Settings2 } from 'lucide-react';
 import { UserSettings, DEFAULT_SETTINGS } from '../types';
+import { cn } from '../lib/utils';
 
 interface SettingsModalProps {
   isOpen: boolean;

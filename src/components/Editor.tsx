@@ -1,5 +1,6 @@
 import Editor, { OnChange, loader } from '@monaco-editor/react';
 import React, { useRef, useEffect, useState } from 'react';
+import { cn } from '../lib/utils';
 
 // Configure monaco loader to use a specific version from jsdelivr
 // This is often more stable than the generic latest version.
@@ -66,7 +67,7 @@ export default function CodeEditor({
   }
 
   return (
-    <div className="w-full h-full overflow-hidden bg-[#050505]">
+    <div className={cn("w-full h-full overflow-hidden", theme === 'light' ? "bg-white" : "bg-[#050505]")}>
       <Editor
         height="100%"
         defaultLanguage={language}
@@ -75,13 +76,13 @@ export default function CodeEditor({
         onMount={handleEditorDidMount}
         theme={theme}
         loading={
-          <div className="flex flex-col items-center justify-center h-full gap-4 bg-[#050505] font-mono">
+          <div className={cn("flex flex-col items-center justify-center h-full gap-4 font-mono", theme === 'light' ? "bg-white" : "bg-[#050505]")}>
             <div className="w-10 h-10 border border-emerald-500/20 flex items-center justify-center">
               <div className="w-4 h-4 border border-emerald-500/40 animate-spin" />
             </div>
             <div className="flex flex-col items-center gap-1">
               <span className="text-[10px] font-bold text-emerald-500/40 uppercase tracking-[0.3em]">INIT_BUFFER</span>
-              <span className="text-[8px] text-[#222] uppercase tracking-[0.5em]">MONACO_CORE</span>
+              <span className="text-[8px] opacity-20 uppercase tracking-[0.5em]">MONACO_CORE</span>
             </div>
           </div>
         }

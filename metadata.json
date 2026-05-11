@@ -1,6 +1,6 @@
 {
   "name": "Manim Studio AI",
-  "description": "Natural language to Manim animation workflow with live web preview and fine-tuned editing.",
+  "description": "Professional AI-powered Manim animation studio with VS-Code inspired interface and real-time preview.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
